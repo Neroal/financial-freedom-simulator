@@ -1,19 +1,34 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watchEffect, onMounted, reactive, nextTick } from 'vue';
 
-const currentAge = ref<number | null>(null);
-const startingAmount = ref<number | null>(null);
-const monthlyInvestment = ref<number | null>(null);
-const annualLumpSumInvestment = ref<number | null>(null);
-const dividendYield = ref<number | null>(null);
-const assetGrowthRate = ref<number | null>(null);
-const inflationRate = ref<number | null>(null);
-const monthlyTargetExpense = ref<number | null>(null);
+const isDark = ref(true);
+
+const placeholders = {
+    currentAge: 30,
+    startingInvestment: 1000000,
+    monthlyInvestment: 1000,
+    annualLumpSumInvestment: 100000,
+    dividendYield: 8,
+    assetGrowthRate: 2,
+    inflationRate: 2,
+    monthlyTargetExpense: 50000
+};
+
+const formData = reactive({
+    currentAge: null,
+    startingInvestment: null,
+    monthlyInvestment: null,
+    annualLumpSumInvestment: null,
+    dividendYield: null,
+    assetGrowthRate: null,
+    inflationRate: null,
+    monthlyTargetExpense: null
+});
 
 const resultRows = ref<
     {
         age: number;
-        startingAmount: number;
+        startingInvestment: number;
         monthlyInvestment: number;
         endOfYearAmount: number;
         dividendIncome: number;
@@ -21,59 +36,80 @@ const resultRows = ref<
     }[]
 >([]);
 
-const financialFreedomAge = ref<number | null>(null);
+const showError = ref(false);
 
-function simulate() {
-    if (
-        currentAge.value === null ||
-        startingAmount.value === null ||
-        monthlyInvestment.value === null ||
-        annualLumpSumInvestment.value === null ||
-        dividendYield.value === null ||
-        assetGrowthRate.value === null ||
-        inflationRate.value === null ||
-        monthlyTargetExpense.value === null
-    ) {
-        resultRows.value = [];
-        financialFreedomAge.value = null;
-        return;
+function showErrorPopup(message: string) {
+    errorMessage.value = message;
+    showError.value = true;
+    setTimeout(() => {
+        showError.value = false;
+    }, 2000);
+}
+
+const financialFreedomAge = ref<number | null>(null);
+const errorMessage = ref('');
+
+function toggleTheme() {
+    document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light');
+    localStorage.setItem('theme', isDark.value ? 'dark' : 'light');
+}
+
+onMounted(() => {
+    const saved = localStorage.getItem('theme');
+    isDark.value = saved === 'dark';
+    toggleTheme();
+});
+
+watchEffect(toggleTheme);
+
+async function simulate() {
+    errorMessage.value = '';
+
+    for (const [key, value] of Object.entries(formData)) {
+        if (value === null || value === '') {
+            showErrorPopup(`⚠️ Please fill in ${key.replace(/([A-Z])/g, ' $1')}.`);
+            return;
+        }
     }
 
     const endAge = 100;
-    let totalAmount = startingAmount.value;
-    let annualTargetExpense = monthlyTargetExpense.value * 12;
-    const annualInvestment = monthlyInvestment.value * 12;
+    let totalAmount = formData.startingInvestment;
+    let annualTargetExpense = formData.monthlyTargetExpense * 12;
+    const annualInvestment = formData.monthlyInvestment * 12;
     resultRows.value = [];
     financialFreedomAge.value = null;
 
-    for (let age = currentAge.value; age <= endAge; age++) {
-        const dividendIncome = totalAmount * (dividendYield.value / 100);
-        const assetGrowth = totalAmount * (assetGrowthRate.value / 100);
+    for (let age = formData.currentAge; age <= endAge; age++) {
+        const dividendIncome = totalAmount * (formData.dividendYield / 100);
+        const assetGrowth = totalAmount * (formData.assetGrowthRate / 100);
         const endOfYearAmount =
             totalAmount +
             annualInvestment +
-            annualLumpSumInvestment.value +
+            formData.annualLumpSumInvestment +
             dividendIncome +
             assetGrowth;
 
         resultRows.value.push({
             age,
-            startingAmount: totalAmount,
-            monthlyInvestment: monthlyInvestment.value,
+            startingInvestment: totalAmount,
+            monthlyInvestment: formData.monthlyInvestment,
             endOfYearAmount,
             dividendIncome,
             annualTargetExpense,
         });
 
-        // 偵測財富自由
         if (financialFreedomAge.value === null && dividendIncome >= annualTargetExpense) {
             financialFreedomAge.value = age;
         }
 
         totalAmount = endOfYearAmount;
-        annualTargetExpense *= 1 + inflationRate.value / 100;
+        annualTargetExpense *= 1 + formData.inflationRate / 100;
     }
+
+    await nextTick();
+    document.querySelector('.table-wrapper')?.scrollIntoView({ behavior: 'smooth' });
 }
+
 function formatKMB(num: number): string {
     if (num >= 1_000_000_000) {
         return (num / 1_000_000_000).toFixed(2).replace(/\.00$/, '') + 'B';
@@ -88,212 +124,251 @@ function formatKMB(num: number): string {
 </script>
 
 <template>
-    <div>
+    <div class="container">
+        <div class="theme-toggle-wrapper">
+            <label class="switch">
+                <input type="checkbox" v-model="isDark" />
+                <span class="slider"></span>
+            </label>
+            <span class="theme-label">{{ isDark ? ' Dark Mode' : ' Light Mode' }}</span>
+        </div>
+
+        <transition name="fade">
+            <div v-if="showError" class="popup-error">{{ errorMessage }}</div>
+        </transition>
+
         <h1>Financial Freedom Simulator</h1>
+
         <form @submit.prevent="simulate">
-            <div>
-                <label for="currentAge">Current Age:</label>
-                <input id="currentAge" type="number" v-model.number="currentAge" min="0" />
+            <div class="form-group" v-for="(label, id) in {
+                currentAge: 'Current Age',
+                startingInvestment: 'Starting Investment',
+                monthlyInvestment: 'SIP (Monthly Investment)',
+                annualLumpSumInvestment: 'LSI (Annual Lump Sum Investment)',
+                dividendYield: 'Dividend Yield (%)',
+                assetGrowthRate: 'Capital Appreciation Rate (%)',
+                inflationRate: 'Inflation Rate (%)',
+                monthlyTargetExpense: 'Target Monthly Passive Income'
+            }" :key="id">
+                <label :for="id" :class="{ 'highlight-label': id === 'monthlyTargetExpense' }">{{ label }}</label>
+                <input :id="id" type="number" v-model.number="formData[id]" min="0" step="0.01"
+                    :placeholder="placeholders[id]" />
             </div>
-            <div>
-                <label for="startingAmount">Starting Investment:</label>
-                <input id="startingAmount" type="number" v-model.number="startingAmount" min="0" />
-            </div>
-            <div>
-                <label for="monthlyInvestment">SIP (Monthly Investment):</label>
-                <input
-                    id="monthlyInvestment"
-                    type="number"
-                    v-model.number="monthlyInvestment"
-                    min="0"
-                />
-            </div>
-            <div>
-                <label for="annualLumpSumInvestment">LSI (Annual Lump Sum Investment):</label>
-                <input
-                    id="annualLumpSumInvestment"
-                    type="number"
-                    v-model.number="annualLumpSumInvestment"
-                    min="0"
-                />
-            </div>
-            <div>
-                <label for="dividendYield">Dividend Yield (%):</label>
-                <input
-                    id="dividendYield"
-                    type="number"
-                    v-model.number="dividendYield"
-                    min="0"
-                    step="0.01"
-                />
-            </div>
-            <div>
-                <label for="assetGrowthRate">Capital Appreciation Rate (%):</label>
-                <input
-                    id="assetGrowthRate"
-                    type="number"
-                    v-model.number="assetGrowthRate"
-                    min="0"
-                    step="0.01"
-                />
-            </div>
-            <div>
-                <label for="inflationRate">Inflation Rate (%):</label>
-                <input
-                    id="inflationRate"
-                    type="number"
-                    v-model.number="inflationRate"
-                    min="0"
-                    step="0.01"
-                />
-            </div>
-            <div>
-                <label for="monthlyTargetExpense">Target Monthly Passive Income:</label>
-                <input
-                    id="monthlyTargetExpense"
-                    type="number"
-                    v-model.number="monthlyTargetExpense"
-                    min="0"
-                />
-            </div>
-            <div>
-                <button type="submit">Simulate</button>
-            </div>
+
+            <button type="submit">Simulate</button>
         </form>
 
         <div style="margin-top: 1rem">
             <template v-if="financialFreedomAge !== null">
-                🎉 You reach financial freedom at age <strong>{{ financialFreedomAge }}</strong>
+                🎉 You reach financial freedom at age
+                <strong class="freedom-age">{{ financialFreedomAge }}</strong>
             </template>
             <template v-else>
                 🚀 Keep going! You're on your way to financial freedom!
             </template>
         </div>
 
-        <table
-            v-if="resultRows.length > 0"
-            border="1"
-            cellpadding="8"
-            cellspacing="0"
-            style="margin-top: 1rem"
-        >
-            <thead>
-                <tr>
-                    <th>Age</th>
-                    <th>Starting Investment</th>
-                    <th>End of Year Investment</th>
-                    <th>Passive Income</th>
-                    <th>Target Annual Passive Income</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr
-                    v-for="row in resultRows"
-                    :key="row.age"
-                    :class="{ highlight: row.age === financialFreedomAge }"
-                >
-                    <td>{{ row.age }}</td>
-                    <td>{{ formatKMB(row.startingAmount) }}</td>
-                    <td>{{ formatKMB(row.endOfYearAmount) }}</td>
-                    <td>{{ formatKMB(row.dividendIncome) }}</td>
-                    <td>{{ formatKMB(row.annualTargetExpense) }}</td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="table-wrapper" v-if="resultRows.length > 0">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Age</th>
+                        <th>Starting Investment</th>
+                        <th>End of Year Investment</th>
+                        <th>Passive Income</th>
+                        <th>Target Annual Passive Income</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="row in resultRows" :key="row.age"
+                        :class="{ highlight: row.age === financialFreedomAge }">
+                        <td>{{ row.age }}</td>
+                        <td>{{ formatKMB(row.startingInvestment) }}</td>
+                        <td>{{ formatKMB(row.endOfYearAmount) }}</td>
+                        <td>{{ formatKMB(row.dividendIncome) }}</td>
+                        <td>{{ formatKMB(row.annualTargetExpense) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 </template>
 
 <style scoped>
-form {
-    max-width: 400px;
-    margin: 0 auto;
-    padding: 1rem;
-    background-color: #1e1e1e;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+.container {
+    max-width: 960px;
+    margin: 2rem auto;
+    padding: 1rem 2rem;
+    text-align: center;
 }
 
-form > div {
-    margin-bottom: 0.8rem;
+.form-group {
+    margin-bottom: 1rem;
+    text-align: left;
     display: flex;
     flex-direction: column;
+    align-items: center;
+}
+
+input {
+    width: 300px;
+    max-width: 100%;
+    padding: 0.4rem;
+    border-radius: 6px;
+    border: 1px solid #999;
+    background: var(--input-bg);
+    color: var(--text-color);
 }
 
 label {
     margin-bottom: 0.3rem;
-    font-weight: 600;
-    color: #fff;
-}
-
-label[for="monthlyTargetExpense"] {
-    color: #ff9800;
-    font-weight: 700;
-}
-
-input {
-    padding: 0.5rem;
-    border: 1px solid #555;
-    border-radius: 4px;
-    background-color: #2c2c2c;
-    color: #fff;
 }
 
 button {
+    margin-top: 1rem;
     padding: 0.6rem 1.2rem;
     background-color: #4caf50;
     color: white;
-    font-weight: bold;
     border: none;
     border-radius: 6px;
+    font-weight: bold;
     cursor: pointer;
     transition: background-color 0.3s ease;
 }
+
 button:hover {
     background-color: #43a047;
 }
 
-h1 {
-    text-align: center;
-    font-size: 2rem;
-    margin-bottom: 1rem;
-    color: #fff;
+/* ✅ 美化後的 switch */
+.theme-switch {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.8rem;
+    background-color: var(--input-bg, #fff);
+    color: var(--text-color);
+    border-radius: 999px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    font-size: 0.85rem;
+    white-space: nowrap;
 }
 
-table {
-    width: 90%;
-    margin: 1rem auto;
-    border-collapse: collapse;
-    color: #ddd;
-    background-color: #1e1e1e;
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 42px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.3s;
+    border-radius: 22px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: #4caf50;
+}
+
+input:checked+.slider:before {
+    transform: translateX(20px);
+}
+
+.highlight {
+    background-color: #ffd700 !important;
+    color: #222 !important;
+    font-weight: bold;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.highlight-label {
+    color: #ff5722;
+    font-weight: bold;
+}
+
+.freedom-age {
+    color: #00e676;
+    font-weight: bold;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-top: 2rem;
+}
+
+thead {
+    background-color: var(--thead-bg, #f0f0f0);
 }
 
 th,
 td {
-    padding: 0.6rem 1rem;
-    border: 1px solid #444;
+    padding: 0.75rem 1rem;
     text-align: center;
+    border: 1px solid #ddd;
 }
 
-thead {
-    background-color: #333;
+/* popup-style error */
+.popup-error {
+    position: fixed;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #ffe6e6;
+    color: #d32f2f;
+    border: 1px solid #d32f2f;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     font-weight: bold;
 }
 
-tbody tr:nth-child(odd) {
-    background-color: #2a2a2a;
+/* dark mode error style */
+[data-theme='dark'] .popup-error {
+    background-color: #3a0f0f;
+    color: #ff8a80;
+    border-color: #ff8a80;
 }
 
-tbody tr:nth-child(even) {
-    background-color: #1c1c1c;
+/* 動畫效果 */
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.4s;
 }
 
-.highlight {
-    background-color: #ff9800 !important;
-    color: #1e1e1e !important;
-}
-
-strong {
-    color: #00e676;
-    font-weight: bold;
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
 }
 </style>

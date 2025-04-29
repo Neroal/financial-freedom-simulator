@@ -1,38 +1,90 @@
 :root {
+  --bg-color: #ffffff;
+  --form-bg: #f8f8f8;
+  --text-color: #111;
+  --input-bg: #ffffff;
+  --label-highlight: #ff5722;
+  --table-bg: #ffffff;
+  --thead-bg: #e0e0e0;
+  --row-odd: #f5f5f5;
+  --row-even: #eeeeee;
+  --highlight-bg: #ffeb3b;
+  --highlight-text: #000;
+
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+:root[data-theme='dark'] {
+  --bg-color: #1e1e1e;
+  --form-bg: #1e1e1e;
+  --text-color: #fff;
+  --input-bg: #2c2c2c;
+  --label-highlight: #ff9800;
+  --table-bg: #1e1e1e;
+  --thead-bg: #333;
+  --row-odd: #2a2a2a;
+  --row-even: #1c1c1c;
+  --highlight-bg: #ff9800;
+  --highlight-text: #1e1e1e;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+body,
+div,
+#app {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+input {
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  border: 1px solid #ccc;
+  padding: 0.5em;
+  border-radius: 6px;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+table {
+  background-color: var(--form-bg);
+  width: 90%;
+  margin: 1rem auto;
+  border-collapse: collapse;
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+th,
+td {
+  border: 1px solid #444;
+  padding: 0.6rem 1rem;
+  text-align: center;
+}
+
+thead {
+  background-color: var(--thead-bg);
+}
+
+tbody tr:nth-child(odd) {
+  background-color: var(--row-odd);
+}
+
+tbody tr:nth-child(even) {
+  background-color: var(--row-even);
+}
+
+.highlight {
+  background-color: var(--highlight-bg) !important;
+  color: var(--highlight-text) !important;
 }
 
 button {
@@ -43,26 +95,36 @@ button {
   font-weight: 500;
   font-family: inherit;
   background-color: #1a1a1a;
+  color: white;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: background-color 0.3s, border-color 0.25s, color 0.3s;
 }
+
 button:hover {
   border-color: #646cff;
+  background-color: #333;
 }
+
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-.card {
-  padding: 2em;
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+  margin-bottom: 1rem;
 }
 
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+  transition: color 0.25s;
+}
+
+a:hover {
+  color: #535bf2;
 }
 
 @media (prefers-color-scheme: light) {
@@ -70,10 +132,13 @@ button:focus-visible {
     color: #213547;
     background-color: #ffffff;
   }
+
   a:hover {
     color: #747bff;
   }
+
   button {
     background-color: #f9f9f9;
+    color: #111;
   }
 }
