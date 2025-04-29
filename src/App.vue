@@ -66,7 +66,7 @@ async function simulate() {
     errorMessage.value = '';
 
     for (const [key, value] of Object.entries(formData)) {
-        if (value === null) {
+        if (value === null || String(value) === '' || isNaN(Number(value))) {
             showErrorPopup(`⚠️ Please fill in ${key.replace(/([A-Z])/g, ' $1')}.`);
             return;
         }
