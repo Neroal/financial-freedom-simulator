@@ -11,18 +11,18 @@ const placeholders = {
     dividendYield: 8,
     assetGrowthRate: 2,
     inflationRate: 2,
-    monthlyTargetExpense: 50000
+    monthlyTargetExpense: 50000,
 };
 
 const formData = reactive({
-    currentAge: null,
-    startingInvestment: null,
-    monthlyInvestment: null,
-    annualLumpSumInvestment: null,
-    dividendYield: null,
-    assetGrowthRate: null,
-    inflationRate: null,
-    monthlyTargetExpense: null
+    currentAge: 30,
+    startingInvestment: 100000,
+    monthlyInvestment: 1000,
+    annualLumpSumInvestment: 100000,
+    dividendYield: 8,
+    assetGrowthRate: 2,
+    inflationRate: 2,
+    monthlyTargetExpense: 60000,
 });
 
 const resultRows = ref<
@@ -66,7 +66,7 @@ async function simulate() {
     errorMessage.value = '';
 
     for (const [key, value] of Object.entries(formData)) {
-        if (value === null || value === '') {
+        if (value === null) {
             showErrorPopup(`⚠️ Please fill in ${key.replace(/([A-Z])/g, ' $1')}.`);
             return;
         }
@@ -140,19 +140,31 @@ function formatKMB(num: number): string {
         <h1>Financial Freedom Simulator</h1>
 
         <form @submit.prevent="simulate">
-            <div class="form-group" v-for="(label, id) in {
-                currentAge: 'Current Age',
-                startingInvestment: 'Starting Investment',
-                monthlyInvestment: 'SIP (Monthly Investment)',
-                annualLumpSumInvestment: 'LSI (Annual Lump Sum Investment)',
-                dividendYield: 'Dividend Yield (%)',
-                assetGrowthRate: 'Capital Appreciation Rate (%)',
-                inflationRate: 'Inflation Rate (%)',
-                monthlyTargetExpense: 'Target Monthly Passive Income'
-            }" :key="id">
-                <label :for="id" :class="{ 'highlight-label': id === 'monthlyTargetExpense' }">{{ label }}</label>
-                <input :id="id" type="number" v-model.number="formData[id]" min="0" step="0.01"
-                    :placeholder="placeholders[id]" />
+            <div
+                class="form-group"
+                v-for="(label, id) in {
+                    currentAge: 'Current Age',
+                    startingInvestment: 'Starting Investment',
+                    monthlyInvestment: 'SIP (Monthly Investment)',
+                    annualLumpSumInvestment: 'LSI (Annual Lump Sum Investment)',
+                    dividendYield: 'Dividend Yield (%)',
+                    assetGrowthRate: 'Capital Appreciation Rate (%)',
+                    inflationRate: 'Inflation Rate (%)',
+                    monthlyTargetExpense: 'Target Monthly Passive Income',
+                }"
+                :key="id"
+            >
+                <label :for="id" :class="{ 'highlight-label': id === 'monthlyTargetExpense' }">{{
+                    label
+                }}</label>
+                <input
+                    :id="id"
+                    type="number"
+                    v-model.number="formData[id]"
+                    min="0"
+                    step="0.01"
+                    :placeholder="String(placeholders[id])"
+                />
             </div>
 
             <button type="submit">Simulate</button>
@@ -163,9 +175,7 @@ function formatKMB(num: number): string {
                 🎉 You reach financial freedom at age
                 <strong class="freedom-age">{{ financialFreedomAge }}</strong>
             </template>
-            <template v-else>
-                🚀 Keep going! You're on your way to financial freedom!
-            </template>
+            <template v-else> 🚀 Keep going! You're on your way to financial freedom! </template>
         </div>
 
         <div class="table-wrapper" v-if="resultRows.length > 0">
@@ -180,8 +190,11 @@ function formatKMB(num: number): string {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="row in resultRows" :key="row.age"
-                        :class="{ highlight: row.age === financialFreedomAge }">
+                    <tr
+                        v-for="row in resultRows"
+                        :key="row.age"
+                        :class="{ highlight: row.age === financialFreedomAge }"
+                    >
                         <td>{{ row.age }}</td>
                         <td>{{ formatKMB(row.startingInvestment) }}</td>
                         <td>{{ formatKMB(row.endOfYearAmount) }}</td>
@@ -286,7 +299,7 @@ button:hover {
 
 .slider:before {
     position: absolute;
-    content: "";
+    content: '';
     height: 16px;
     width: 16px;
     left: 3px;
@@ -296,11 +309,11 @@ button:hover {
     border-radius: 50%;
 }
 
-input:checked+.slider {
+input:checked + .slider {
     background-color: #4caf50;
 }
 
-input:checked+.slider:before {
+input:checked + .slider:before {
     transform: translateX(20px);
 }
 
@@ -308,7 +321,9 @@ input:checked+.slider:before {
     background-color: #ffd700 !important;
     color: #222 !important;
     font-weight: bold;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition:
+        background-color 0.3s ease,
+        color 0.3s ease;
 }
 
 .highlight-label {
