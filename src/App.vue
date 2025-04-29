@@ -128,7 +128,7 @@ function formatKMB(num: number): string {
                 />
             </div>
             <div>
-                <label for="assetGrowthRate">Asset Growth Rate (%):</label>
+                <label for="assetGrowthRate">Capital Appreciation Rate (%):</label>
                 <input
                     id="assetGrowthRate"
                     type="number"
@@ -161,8 +161,13 @@ function formatKMB(num: number): string {
             </div>
         </form>
 
-        <div v-if="financialFreedomAge !== null" style="margin-top: 1rem">
-            🎉 You reach financial freedom at age <strong>{{ financialFreedomAge }}</strong>
+        <div style="margin-top: 1rem">
+            <template v-if="financialFreedomAge !== null">
+                🎉 You reach financial freedom at age <strong>{{ financialFreedomAge }}</strong>
+            </template>
+            <template v-else>
+                🚀 Keep going! You're on your way to financial freedom!
+            </template>
         </div>
 
         <table
@@ -182,7 +187,11 @@ function formatKMB(num: number): string {
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="row in resultRows" :key="row.age">
+                <tr
+                    v-for="row in resultRows"
+                    :key="row.age"
+                    :class="{ highlight: row.age === financialFreedomAge }"
+                >
                     <td>{{ row.age }}</td>
                     <td>{{ formatKMB(row.startingAmount) }}</td>
                     <td>{{ formatKMB(row.endOfYearAmount) }}</td>
@@ -214,6 +223,11 @@ label {
     margin-bottom: 0.3rem;
     font-weight: 600;
     color: #fff;
+}
+
+label[for="monthlyTargetExpense"] {
+    color: #ff9800;
+    font-weight: 700;
 }
 
 input {
@@ -271,6 +285,11 @@ tbody tr:nth-child(odd) {
 
 tbody tr:nth-child(even) {
     background-color: #1c1c1c;
+}
+
+.highlight {
+    background-color: #ff9800 !important;
+    color: #1e1e1e !important;
 }
 
 strong {
