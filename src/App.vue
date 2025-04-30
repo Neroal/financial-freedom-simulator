@@ -180,8 +180,7 @@ function formatKMB(num: number): string {
                 <thead>
                     <tr>
                         <th>Age</th>
-                        <th>Starting Investment</th>
-                        <th>End of Year Investment</th>
+                        <th class="desktop-only">Starting Investment</th>
                         <th>Passive Income</th>
                         <th>Target Annual Passive Income</th>
                     </tr>
@@ -193,8 +192,7 @@ function formatKMB(num: number): string {
                         :class="{ highlight: row.age === financialFreedomAge }"
                     >
                         <td>{{ row.age }}</td>
-                        <td>{{ formatKMB(row.startingInvestment) }}</td>
-                        <td>{{ formatKMB(row.endOfYearAmount) }}</td>
+                        <td class="desktop-only">{{ formatKMB(row.startingInvestment) }}</td>
                         <td>{{ formatKMB(row.dividendIncome) }}</td>
                         <td>{{ formatKMB(row.annualTargetExpense) }}</td>
                     </tr>
@@ -382,5 +380,11 @@ td {
 .fade-enter-from,
 .fade-leave-to {
     opacity: 0;
+}
+
+@media (max-width: 600px) {
+    .desktop-only {
+        display: none;
+    }
 }
 </style>
