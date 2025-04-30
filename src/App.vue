@@ -1,50 +1,154 @@
 <script setup lang="ts">
-import { ref, watchEffect, onMounted, reactive, nextTick } from 'vue';
+import { ref, watchEffect, onMounted, reactive, nextTick, onUpdated } from 'vue';
+import {
+    Chart,
+    LineController,
+    LineElement,
+    PointElement,
+    LinearScale,
+    BarController,
+    BarElement,
+    Title,
+    CategoryScale,
+    Tooltip,
+    Legend,
+} from 'chart.js';
+
+Chart.register(
+    LineController,
+    LineElement,
+    PointElement,
+    BarController,
+    BarElement,
+    LinearScale,
+    Title,
+    CategoryScale,
+    Tooltip,
+    Legend
+);
+
+let chartInstance: Chart | null = null;
+
+onUpdated(() => {
+    if (resultRows.value.length === 0) return;
+
+    // 新增 targetData
+    const targetData = resultRows.value.map((r) => r.monthlyDividendTarget);
+
+    const ctx = document.getElementById('result-chart') as HTMLCanvasElement;
+    if (!ctx) return;
+
+    const labels = resultRows.value.map((r) => r.age);
+    const dividendData = resultRows.value.map((r) => r.monthlyDividend);
+
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
+
+    chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                {
+                    type: 'line',
+                    label: 'Monthly Dividend Goal',
+                    data: targetData,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    borderDash: [5, 5],
+                    tension: 0.3,
+                    yAxisID: 'y',
+                },
+                {
+                    type: 'bar',
+                    label: 'Monthly Dividend',
+                    data: dividendData,
+                    backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1,
+                    yAxisID: 'y',
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: isDark.value ? '#fff' : '#000',
+                        font: {
+                            size: 12,
+                            weight: 'bold',
+                        },
+                    },
+                },
+                tooltip: {
+                    backgroundColor: isDark.value ? '#333' : '#fff',
+                    titleColor: isDark.value ? '#fff' : '#000',
+                    bodyColor: isDark.value ? '#fff' : '#000',
+                },
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        color: isDark.value ? '#ccc' : '#333',
+                    },
+                    grid: {
+                        color: isDark.value ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+                    },
+                },
+                y: {
+                    beginAtZero: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Dividend',
+                        color: isDark.value ? '#ccc' : '#333',
+                    },
+                    ticks: {
+                        color: isDark.value ? '#ccc' : '#333',
+                    },
+                    grid: {
+                        color: isDark.value ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+                    },
+                },
+            },
+        },
+    });
+});
 
 const isDark = ref(true);
 
 const placeholders = {
-    currentAge: 30,
-    startingInvestment: 1000000,
+    currentAge: 18,
+    startingInvestment: 0,
     monthlyInvestment: 1000,
-    annualLumpSumInvestment: 100000,
+    annualLumpSumInvestment: 128000,
     dividendYield: 5,
-    assetGrowthRate: 2,
     inflationRate: 2,
-    monthlyTargetExpense: 60000,
+    monthlyDividendTarget: 100000,
 };
 
 const formData = reactive({
-    currentAge: 30,
-    startingInvestment: 100000,
+    currentAge: 18,
+    startingInvestment: 0,
     monthlyInvestment: 1000,
-    annualLumpSumInvestment: 100000,
+    annualLumpSumInvestment: 128000,
     dividendYield: 5,
-    assetGrowthRate: 2,
     inflationRate: 2,
-    monthlyTargetExpense: 60000,
+    monthlyDividendTarget: 100000,
 });
 
 const resultRows = ref<
     {
         age: number;
-        startingInvestment: number;
-        monthlyInvestment: number;
-        endOfYearAmount: number;
-        dividendIncome: number;
-        annualTargetExpense: number;
+        totalAssets: number;
+        monthlyDividend: number;
+        monthlyDividendTarget: number;
     }[]
 >([]);
-
-const showError = ref(false);
-
-function showErrorPopup(message: string) {
-    errorMessage.value = message;
-    showError.value = true;
-    setTimeout(() => {
-        showError.value = false;
-    }, 2000);
-}
 
 const financialFreedomAge = ref<number | null>(null);
 const errorMessage = ref('');
@@ -62,45 +166,30 @@ watchEffect(toggleTheme);
 async function simulate() {
     errorMessage.value = '';
 
-    for (const [key, value] of Object.entries(formData)) {
-        if (value === null || String(value) === '' || isNaN(Number(value))) {
-            showErrorPopup(`⚠️ Please fill in ${key.replace(/([A-Z])/g, ' $1')}.`);
-            return;
-        }
-    }
-
     const endAge = 100;
-    let totalAmount = formData.startingInvestment;
-    let annualTargetExpense = formData.monthlyTargetExpense * 12;
-    const annualInvestment = formData.monthlyInvestment * 12;
+    let totalAssets = formData.startingInvestment;
+    let monthlyDividendTarget = formData.monthlyDividendTarget;
+    const annualInvestment = formData.monthlyInvestment * 12 + formData.annualLumpSumInvestment;
     resultRows.value = [];
     financialFreedomAge.value = null;
 
     for (let age = formData.currentAge; age <= endAge; age++) {
-        const dividendIncome = totalAmount * (formData.dividendYield / 100);
-        const assetGrowth = totalAmount * (formData.assetGrowthRate / 100);
-        const endOfYearAmount =
-            totalAmount +
-            annualInvestment +
-            formData.annualLumpSumInvestment +
-            dividendIncome +
-            assetGrowth;
+        const monthlyDividend = totalAssets * (formData.dividendYield / 100);
+        const endOfYearAssets = totalAssets + annualInvestment + monthlyDividend;
 
         resultRows.value.push({
             age,
-            startingInvestment: totalAmount,
-            monthlyInvestment: formData.monthlyInvestment,
-            endOfYearAmount,
-            dividendIncome,
-            annualTargetExpense,
+            totalAssets,
+            monthlyDividend,
+            monthlyDividendTarget,
         });
 
-        if (financialFreedomAge.value === null && dividendIncome >= annualTargetExpense) {
+        if (financialFreedomAge.value === null && monthlyDividend >= monthlyDividendTarget) {
             financialFreedomAge.value = age;
         }
 
-        totalAmount = endOfYearAmount;
-        annualTargetExpense *= 1 + formData.inflationRate / 100;
+        totalAssets = endOfYearAssets;
+        monthlyDividendTarget *= 1 + formData.inflationRate / 100;
     }
 
     await nextTick();
@@ -130,10 +219,6 @@ function formatKMB(num: number): string {
             <span class="theme-label">{{ isDark ? ' Dark Mode' : ' Light Mode' }}</span>
         </div>
 
-        <transition name="fade">
-            <div v-if="showError" class="popup-error">{{ errorMessage }}</div>
-        </transition>
-
         <h1>Financial Freedom Simulator</h1>
 
         <form @submit.prevent="simulate">
@@ -145,13 +230,12 @@ function formatKMB(num: number): string {
                     monthlyInvestment: 'SIP (Monthly Investment)',
                     annualLumpSumInvestment: 'LSI (Annual Lump Sum Investment)',
                     dividendYield: 'Dividend Yield (%)',
-                    assetGrowthRate: 'IRR (Internal Rate Of Return %)',
                     inflationRate: 'Inflation Rate (%)',
-                    monthlyTargetExpense: 'Target Monthly Passive Income',
+                    monthlyDividendTarget: 'Monthly Dividend Goal',
                 }"
                 :key="id"
             >
-                <label :for="id" :class="{ 'highlight-label': id === 'monthlyTargetExpense' }">{{
+                <label :for="id" :class="{ 'highlight-label': id === 'monthlyDividendTarget' }">{{
                     label
                 }}</label>
                 <input
@@ -161,6 +245,7 @@ function formatKMB(num: number): string {
                     min="0"
                     step="0.01"
                     :placeholder="String(placeholders[id])"
+                    required
                 />
             </div>
 
@@ -176,13 +261,20 @@ function formatKMB(num: number): string {
         </div>
 
         <div class="table-wrapper" v-if="resultRows.length > 0">
+            <div
+                style="margin-top: 2rem; position: relative; height: 400px"
+                v-if="resultRows.length > 0"
+            >
+                <canvas id="result-chart"></canvas>
+            </div>
+
             <table>
                 <thead>
                     <tr>
                         <th>Age</th>
-                        <th class="desktop-only">Starting Investment</th>
-                        <th>Passive Income</th>
-                        <th>Target Annual Passive Income</th>
+                        <th class="desktop-only">Total Assets</th>
+                        <th>Monthly Dividend</th>
+                        <th>Dividend Goal</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -192,9 +284,9 @@ function formatKMB(num: number): string {
                         :class="{ highlight: row.age === financialFreedomAge }"
                     >
                         <td>{{ row.age }}</td>
-                        <td class="desktop-only">{{ formatKMB(row.startingInvestment) }}</td>
-                        <td>{{ formatKMB(row.dividendIncome) }}</td>
-                        <td>{{ formatKMB(row.annualTargetExpense) }}</td>
+                        <td class="desktop-only">{{ formatKMB(row.totalAssets) }}</td>
+                        <td>{{ formatKMB(row.monthlyDividend) }}</td>
+                        <td>{{ formatKMB(row.monthlyDividendTarget) }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -348,43 +440,13 @@ td {
     border: 1px solid #ddd;
 }
 
-/* popup-style error */
-.popup-error {
-    position: fixed;
-    top: 1rem;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #ffe6e6;
-    color: #d32f2f;
-    border: 1px solid #d32f2f;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    z-index: 9999;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    font-weight: bold;
-}
-
-/* dark mode error style */
-[data-theme='dark'] .popup-error {
-    background-color: #3a0f0f;
-    color: #ff8a80;
-    border-color: #ff8a80;
-}
-
-/* 動畫效果 */
-.fade-enter-active,
-.fade-leave-active {
-    transition: opacity 0.4s;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-    opacity: 0;
-}
-
 @media (max-width: 600px) {
     .desktop-only {
         display: none;
     }
+}
+
+canvas {
+    max-width: 100%;
 }
 </style>
