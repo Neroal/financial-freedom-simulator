@@ -1,5 +1,45 @@
 # Financial Freedom Simulator
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+A web-based simulator to help users plan their path to financial freedom. This tool is built using **Vue 3**, **TypeScript**, and **Vite**.
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## 🚀 Features
+
+- Interactive simulation of financial growth over time
+- Adjustable income, expenses, investment rate, and expected returns
+- Graphical visualization of financial independence timeline
+- Responsive and user-friendly UI
+- Built with modern frontend technologies
+
+## 🛠 Tech Stack
+
+- [Vue 3](https://vuejs.org/)
+- [Vite](https://vitejs.dev/)
+- [TypeScript](https://www.typescriptlang.org/)
+
+## 📦 Project Setup
+
+```bash
+npm install
+```
+
+### Compiles and hot-reloads for development
+
+```bash
+npm run dev
+```
+
+### Compiles and minifies for production
+
+```bash
+npm run build
+```
+
+### Lints and fixes files
+
+```bash
+npm run lint
+```
+
+## 📄 License
+
+This project is licensed under the MIT License.
