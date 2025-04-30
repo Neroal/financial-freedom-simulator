@@ -174,8 +174,9 @@ async function simulate() {
     financialFreedomAge.value = null;
 
     for (let age = formData.currentAge; age <= endAge; age++) {
-        const monthlyDividend = totalAssets * (formData.dividendYield / 100);
-        const endOfYearAssets = totalAssets + annualInvestment + monthlyDividend;
+        const annualDividend = totalAssets * (formData.dividendYield / 100);
+        const endOfYearAssets = totalAssets + annualInvestment + annualDividend;
+        const monthlyDividend = annualDividend / 12;
 
         resultRows.value.push({
             age,
