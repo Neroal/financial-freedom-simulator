@@ -8,10 +8,10 @@ const placeholders = {
     startingInvestment: 1000000,
     monthlyInvestment: 1000,
     annualLumpSumInvestment: 100000,
-    dividendYield: 8,
+    dividendYield: 5,
     assetGrowthRate: 2,
     inflationRate: 2,
-    monthlyTargetExpense: 50000,
+    monthlyTargetExpense: 60000,
 };
 
 const formData = reactive({
@@ -19,7 +19,7 @@ const formData = reactive({
     startingInvestment: 100000,
     monthlyInvestment: 1000,
     annualLumpSumInvestment: 100000,
-    dividendYield: 8,
+    dividendYield: 5,
     assetGrowthRate: 2,
     inflationRate: 2,
     monthlyTargetExpense: 60000,
@@ -51,12 +51,9 @@ const errorMessage = ref('');
 
 function toggleTheme() {
     document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light');
-    localStorage.setItem('theme', isDark.value ? 'dark' : 'light');
 }
 
 onMounted(() => {
-    const saved = localStorage.getItem('theme');
-    isDark.value = saved === 'dark';
     toggleTheme();
 });
 
@@ -148,7 +145,7 @@ function formatKMB(num: number): string {
                     monthlyInvestment: 'SIP (Monthly Investment)',
                     annualLumpSumInvestment: 'LSI (Annual Lump Sum Investment)',
                     dividendYield: 'Dividend Yield (%)',
-                    assetGrowthRate: 'Capital Appreciation Rate (%)',
+                    assetGrowthRate: 'IRR (Internal Rate Of Return %)',
                     inflationRate: 'Inflation Rate (%)',
                     monthlyTargetExpense: 'Target Monthly Passive Income',
                 }"
